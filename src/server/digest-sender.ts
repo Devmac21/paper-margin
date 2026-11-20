@@ -9,6 +9,7 @@
 import { buildCronContext } from 'deepspace/worker'
 import type { Env } from '../../worker'
 import { composeDigest, WEEK_MS, type DigestPaper } from '../lib/digest'
+import { flag } from '../lib/flag'
 import type { ReadingGuide } from '../lib/guide'
 import { createStore, toMillis, type MemberRow } from './store'
 
@@ -65,7 +66,7 @@ export async function sendCircleDigest(
   if (!email) return { sent: 0, reason: 'Nothing new this week, so there is nothing to send.' }
 
   const recipients = members.filter((m) =>
-    options.onlyUserId ? m.data.userId === options.onlyUserId : m.data.digest !== false,
+    options.onlyUserId ? m.data.userId === options.onlyUserId : flag(m.data.digest, true),
   )
   const ctx = buildCronContext(env, env.OWNER_USER_ID, `app:${env.DEEPSPACE_APP_ID}`)
 

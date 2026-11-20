@@ -8,7 +8,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth, useMutations, usePresence, useQuery, useUserLookup } from 'deepspace'
 import { Check, Copy, FileText, LoaderCircle, Mail, RotateCcw, Trash2 } from 'lucide-react'
 import { Badge, Button, ConfirmModal, EmptyState, Input, Switch, useToast } from '@/components/ui'
-import { callAction, isWorking, timeAgo, type Circle, type Membership, type Note, type Paper } from '@/lib/client'
+import { callAction, isWorking, plural, timeAgo, type Circle, type Membership, type Note, type Paper } from '@/lib/client'
+import { flag } from '@/lib/flag'
 
 export default function CirclePage() {
   const { circleId = '' } = useParams()
@@ -42,10 +43,10 @@ export default function CirclePage() {
       </header>
 
       <div className="grid gap-10 md:grid-cols-[1fr_280px]">
-        <main>
+        <section aria-label="Papers">
           <AddPaperForm circleId={circleId} />
           <PaperList circleId={circleId} isOwner={isOwner} />
-        </main>
+        </section>
         <aside className="space-y-6">
           <Members circleId={circleId} ownerId={circle.data.ownerId} />
           <InviteLink code={circle.data.inviteCode} />
@@ -145,11 +146,11 @@ function PaperList({ circleId, isOwner }: { circleId: string; isOwner: boolean }
                   <span className="font-reading text-lg text-muted-foreground">{p.data.title}</span>
                 )}
                 <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                  <span>arXiv:{p.data.arxivId}</span>
+                  {p.data.title !== `arXiv:${p.data.arxivId}` && <span>arXiv:{p.data.arxivId}</span>}
                   <span>
                     added by {getName(p.createdBy ?? '') ?? 'a member'} {timeAgo(p.createdAt)}
                   </span>
-                  {p.data.status === 'ready' && <span>{noteCount(p.recordId)} notes</span>}
+                  {p.data.status === 'ready' && <span>{plural(noteCount(p.recordId), 'note')}</span>}
                   {p.data.source === 'abstract' && (
                     <Badge variant="outline" size="sm">
                       abstract only
@@ -275,7 +276,7 @@ function DigestSettings({ circleId, isOwner }: { circleId: string; isOwner: bool
       <label className="flex items-center justify-between gap-3 text-sm">
         <span>Email me on Mondays</span>
         <Switch
-          checked={mine?.data.digest !== false}
+          checked={flag(mine?.data.digest, true)}
           disabled={!mine || !ready}
           onCheckedChange={(checked) => mine && put(mine.recordId, { digest: checked })}
           aria-label="Weekly digest email"

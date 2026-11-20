@@ -78,7 +78,7 @@ test.describe('Smoke tests', () => {
   test('circle, paper, and invite pages are gated behind sign-in', async ({ page }) => {
     for (const path of ['/c/some-circle', '/c/some-circle/p/some-paper', '/join/abcdefghjk']) {
       await page.goto(path)
-      await expect(page.locator('[data-testid="auth-overlay"]')).toBeVisible({ timeout: 15000 })
+      await expect(page.getByRole('heading', { name: 'Sign in to continue' })).toBeVisible({ timeout: 15000 })
       await expect(page.getByTestId('circle-name')).toHaveCount(0)
     }
   })

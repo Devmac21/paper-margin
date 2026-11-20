@@ -24,7 +24,7 @@ async function createCircle(user: MultiplayerUser, name: string): Promise<{ url:
   await user.page.getByLabel('Circle name').fill(name)
   await user.page.getByRole('button', { name: 'Create circle' }).click()
   await expect(user.page.getByTestId('circle-name')).toHaveText(name, { timeout: 15_000 })
-  const invite = await user.page.getByLabel('Invite link').inputValue()
+  const invite = await user.page.getByRole('textbox', { name: 'Invite link' }).inputValue()
   return { url: user.page.url(), invite }
 }
 
@@ -59,6 +59,36 @@ test('a circle is private until you join with the invite link', async ({ users }
     // The outsider still cannot see it.
     await outsider.page.reload()
     await expect(outsider.page.getByText('Circle not found')).toBeVisible({ timeout: 15_000 })
+  } finally {
+    await deleteCircle(owner, circle.url)
+  }
+})
+
+test('a member can opt out of the digest and leave the circle', async ({ users }) => {
+  const [owner, friend] = await users(2)
+  const name = `${stamp()} Digest circle`
+  const circle = await createCircle(owner, name)
+  try {
+    await joinCircle(friend, circle.invite, name)
+    const toggle = friend.page.getByRole('switch', { name: 'Weekly digest email' })
+    await expect(toggle).toHaveAttribute('aria-checked', 'true', { timeout: 15_000 })
+    await toggle.click()
+    await expect(toggle).toHaveAttribute('aria-checked', 'false')
+
+    // Stored booleans come back as 0/1; the opt-out must survive a reload.
+    await friend.page.reload()
+    await expect(friend.page.getByRole('switch', { name: 'Weekly digest email' })).toHaveAttribute(
+      'aria-checked',
+      'false',
+      { timeout: 15_000 },
+    )
+
+    await friend.page.getByRole('button', { name: 'Leave circle' }).click()
+    await friend.page.getByRole('button', { name: 'Leave', exact: true }).click()
+    await expect(friend.page).toHaveURL(/\/home$/)
+    await friend.page.goto(new URL(circle.url).pathname)
+    await expect(friend.page.getByText('Circle not found')).toBeVisible({ timeout: 15_000 })
+    await expect(owner.page.getByTestId('member-list').locator('li')).toHaveCount(1, { timeout: 15_000 })
   } finally {
     await deleteCircle(owner, circle.url)
   }

@@ -8,7 +8,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { AuthOverlay, useAuth, useQuery } from 'deepspace'
 import { BookOpen, Plus, Users } from 'lucide-react'
 import { Button, EmptyState, Input, Textarea, useToast } from '@/components/ui'
-import { callAction, type Circle, type Membership, type Paper } from '@/lib/client'
+import { callAction, plural, type Circle, type Membership, type Paper } from '@/lib/client'
 
 export default function HomePage() {
   const { isSignedIn, isLoaded } = useAuth()
@@ -77,10 +77,10 @@ function Circles() {
                     )}
                     <div className="mt-2 flex gap-4 text-xs text-muted-foreground">
                       <span className="inline-flex items-center gap-1">
-                        <Users className="size-3.5" aria-hidden /> {count(c.recordId, memberships)} members
+                        <Users className="size-3.5" aria-hidden /> {plural(count(c.recordId, memberships), 'member')}
                       </span>
                       <span className="inline-flex items-center gap-1">
-                        <BookOpen className="size-3.5" aria-hidden /> {count(c.recordId, papers)} papers
+                        <BookOpen className="size-3.5" aria-hidden /> {plural(count(c.recordId, papers), 'paper')}
                       </span>
                     </div>
                   </Link>

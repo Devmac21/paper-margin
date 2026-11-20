@@ -81,5 +81,7 @@ export function timeAgo(value: string | number | undefined): string {
   return new Date(ms).toLocaleDateString()
 }
 
+export const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
+
 export const isWorking = (status: Paper['status']) =>
   status === 'queued' || status === 'fetching' || status === 'reading'

@@ -13,6 +13,7 @@ import { CheckCircle2, ExternalLink, LoaderCircle, MessageSquare, Pencil, Reply,
 import { Badge, Button, EmptyState, Textarea, useToast } from '@/components/ui'
 import { anchorLabel, GUIDE_SECTIONS, questionAnchor, type ReadingGuide } from '@/lib/guide'
 import { callAction, isWorking, timeAgo, type Note, type Paper } from '@/lib/client'
+import { flag } from '@/lib/flag'
 import { cn } from '@/lib/utils'
 
 type NoteRecord = { recordId: string; data: Note; createdAt?: string | number; createdBy?: string }
@@ -435,6 +436,7 @@ function NoteItem({ note, onReply }: { note: NoteRecord; onReply?: () => void })
   const [draft, setDraft] = useState(note.data.body)
   const mine = note.createdBy === userId
   const author = note.createdBy ?? ''
+  const resolved = flag(note.data.resolved)
 
   function save(e: FormEvent) {
     e.preventDefault()
@@ -445,12 +447,12 @@ function NoteItem({ note, onReply }: { note: NoteRecord; onReply?: () => void })
   }
 
   return (
-    <div className={cn('text-sm', note.data.resolved && 'opacity-60')} data-testid="note">
+    <div className={cn('text-sm', resolved && 'opacity-60')} data-testid="note">
       <div className="flex items-center gap-2 text-xs">
         <span className="size-2 rounded-full" style={{ background: getUserColor(author) }} aria-hidden />
         <span className="font-medium">{getName(author) ?? 'Member'}</span>
         <span className="text-muted-foreground">{timeAgo(note.createdAt)}</span>
-        {note.data.resolved && (
+        {resolved && (
           <span className="inline-flex items-center gap-0.5 text-success">
             <CheckCircle2 className="size-3" aria-hidden /> resolved
           </span>
@@ -458,7 +460,14 @@ function NoteItem({ note, onReply }: { note: NoteRecord; onReply?: () => void })
       </div>
       {editing ? (
         <form onSubmit={save} className="mt-1 space-y-1.5">
-          <Textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={3} maxLength={2000} />
+          <Textarea
+            aria-label="Edit note"
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            rows={3}
+            maxLength={2000}
+          />
           <div className="flex gap-1.5">
             <Button type="submit" size="sm" disabled={!ready || !draft.trim()}>
               Save
@@ -483,10 +492,10 @@ function NoteItem({ note, onReply }: { note: NoteRecord; onReply?: () => void })
               <button
                 type="button"
                 disabled={!ready}
-                onClick={() => put(note.recordId, { resolved: !note.data.resolved })}
+                onClick={() => put(note.recordId, { resolved: !resolved })}
                 className="hover:text-foreground"
               >
-                {note.data.resolved ? 'Reopen' : 'Resolve'}
+                {resolved ? 'Reopen' : 'Resolve'}
               </button>
               <button
                 type="button"
