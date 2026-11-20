@@ -94,6 +94,23 @@ test('a member can opt out of the digest and leave the circle', async ({ users }
   }
 })
 
+test('the owner can email themselves a digest preview, once per cooldown', async ({ users }) => {
+  test.skip(process.env.PM_SKIP_AI === '1', 'PM_SKIP_AI=1 skips paid integration calls')
+  const [owner] = await users(1)
+  const name = `${stamp()} Preview circle`
+  const circle = await createCircle(owner, name)
+  try {
+    const button = owner.page.getByRole('button', { name: 'Email me a preview' })
+    const outcome = owner.page.getByTestId('preview-outcome')
+    await button.click()
+    await expect(outcome).toContainText('Sent to your account email', { timeout: 20_000 })
+    await button.click()
+    await expect(outcome).toContainText('in the last 10 minutes', { timeout: 20_000 })
+  } finally {
+    await deleteCircle(owner, circle.url)
+  }
+})
+
 test('invalid invite links are refused', async ({ users }) => {
   const [user] = await users(1)
   await user.page.goto('/join/zzzzzzzzzz')

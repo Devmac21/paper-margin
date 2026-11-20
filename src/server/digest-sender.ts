@@ -62,6 +62,7 @@ export async function sendCircleDigest(
     newPapers,
     activePapers,
     noteCount: weekNotes.length,
+    preview: Boolean(options.onlyUserId),
   })
   if (!email) return { sent: 0, reason: 'Nothing new this week, so there is nothing to send.' }
 
@@ -71,11 +72,15 @@ export async function sendCircleDigest(
   const ctx = buildCronContext(env, env.OWNER_USER_ID, `app:${env.DEEPSPACE_APP_ID}`)
 
   let sent = 0
+  let noAddress = 0
   const failures: string[] = []
   for (const m of recipients) {
     const user = await store.get<{ email?: string }>('users', m.data.userId)
     const to = user?.data.email
-    if (!to) continue
+    if (!to) {
+      noAddress++
+      continue
+    }
     try {
       await ctx.integrations.call('email/send', { to, subject: email.subject, text: email.text, html: email.html })
       sent++
@@ -85,6 +90,11 @@ export async function sendCircleDigest(
       failures.push(m.recordId)
     }
   }
+  console.info(
+    `[digest] circle ${circleId}: ${recipients.length} recipients, ${sent} sent, ` +
+      `${noAddress} without an address, ${failures.length} failed`,
+  )
   if (failures.length && sent === 0) throw new Error(`All ${failures.length} digest sends failed`)
+  if (sent === 0 && noAddress > 0) return { sent: 0, reason: 'No email address is on file for this account.' }
   return { sent }
 }

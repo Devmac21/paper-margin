@@ -259,15 +259,26 @@ function DigestSettings({ circleId, isOwner }: { circleId: string; isOwner: bool
   const { records } = useQuery<Membership>('team_members', { where: { teamId: circleId, userId: userId ?? '' } })
   const { put, ready } = useMutations<Membership>('team_members')
   const [sending, setSending] = useState(false)
+  const [outcome, setOutcome] = useState<{ ok: boolean; text: string } | null>(null)
   const mine = records[0]
 
   async function preview() {
     setSending(true)
+    setOutcome(null)
     const res = await callAction<{ sent: number; reason?: string }>('previewDigest', { circleId })
     setSending(false)
-    if (!res.success) return error('Preview not sent', res.error)
-    if (res.data.sent === 0) return info('Nothing to send', res.data.reason)
-    success('Preview sent', 'Check your inbox.')
+    if (!res.success) {
+      setOutcome({ ok: false, text: res.error })
+      return error('Preview not sent', res.error)
+    }
+    if (res.data.sent === 0) {
+      const reason = res.data.reason ?? 'The preview was not sent.'
+      setOutcome({ ok: false, text: reason })
+      return info('Preview not sent', reason)
+    }
+    const text = 'Sent to your account email from notifications@updates.app.space. Check spam if it is not in your inbox.'
+    setOutcome({ ok: true, text })
+    success('Preview sent', text)
   }
 
   return (
@@ -287,6 +298,15 @@ function DigestSettings({ circleId, isOwner }: { circleId: string; isOwner: bool
         <Button variant="outline" size="sm" className="mt-3 w-full" loading={sending} onClick={preview}>
           <Mail className="size-3.5" aria-hidden /> Email me a preview
         </Button>
+      )}
+      {outcome && (
+        <p
+          role="status"
+          data-testid="preview-outcome"
+          className={`mt-2 text-xs ${outcome.ok ? 'text-success' : 'text-destructive'}`}
+        >
+          {outcome.text}
+        </p>
       )}
     </section>
   )

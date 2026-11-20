@@ -226,14 +226,17 @@ export const actions: Record<string, ActionHandler<Env>> = {
     const last = found.circle.data.lastPreviewAt ?? 0
     if (Date.now() - last < PREVIEW_COOLDOWN_MS) return fail('A preview was sent in the last 10 minutes.')
 
-    await store.update('circles', found.circle.recordId, { lastPreviewAt: Date.now() })
-    const result = await sendCircleDigest(env, found.circle.recordId, { onlyUserId: userId })
-    if (result.sent === 0) {
-      return {
-        success: true,
-        data: { sent: 0, reason: result.reason ?? 'Nothing new this week, so there is nothing to send.' },
-      }
+    let result: { sent: number; reason?: string }
+    try {
+      result = await sendCircleDigest(env, found.circle.recordId, { onlyUserId: userId })
+    } catch (err) {
+      console.error(`[action] previewDigest failed: ${(err as Error).message}`)
+      return fail('The email service did not accept the preview. Try again in a minute.')
     }
+    if (result.sent === 0) {
+      return { success: true, data: { sent: 0, reason: result.reason ?? 'The preview was not sent.' } }
+    }
+    await store.update('circles', found.circle.recordId, { lastPreviewAt: Date.now() })
     return { success: true, data: { sent: result.sent } }
   },
 }

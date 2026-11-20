@@ -31,6 +31,12 @@ describe('composeDigest', () => {
     expect(email.html).not.toContain('<Is>')
   })
 
+  it('a preview of a quiet week still produces an email', () => {
+    const email = composeDigest({ ...base, newPapers: [], activePapers: [], noteCount: 0, preview: true })!
+    expect(email.subject).toBe('[Preview] ML Reading: a quiet week')
+    expect(email.text).toContain('On quiet weeks members get no email.')
+  })
+
   it('still sends when there is discussion but no new paper', () => {
     const email = composeDigest({ ...base, newPapers: [], activePapers: [paper({ noteCount: 1 })], noteCount: 1 })
     expect(email?.subject).toBe('ML Reading: 0 new papers, 1 margin note this week')

@@ -17,6 +17,8 @@ export interface DigestInput {
   newPapers: DigestPaper[]
   activePapers: DigestPaper[]
   noteCount: number
+  /** An owner's preview: always produces an email, marked as a preview. */
+  preview?: boolean
 }
 
 export interface DigestEmail {
@@ -28,15 +30,21 @@ export interface DigestEmail {
 const escapeHtml = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
-/** Returns null when nothing happened, so quiet circles get no email. */
+/** Returns null when nothing happened, so quiet circles get no email (previews always get one). */
 export function composeDigest(input: DigestInput): DigestEmail | null {
-  const { circleName, circleUrl, newPapers, activePapers, noteCount } = input
-  if (newPapers.length === 0 && noteCount === 0) return null
+  const { circleName, circleUrl, newPapers, activePapers, noteCount, preview = false } = input
+  const quiet = newPapers.length === 0 && noteCount === 0
+  if (quiet && !preview) return null
 
-  const subject = `${circleName}: ${plural(newPapers.length, 'new paper')}, ${plural(noteCount, 'margin note')} this week`
+  const summary = quiet
+    ? 'a quiet week'
+    : `${plural(newPapers.length, 'new paper')}, ${plural(noteCount, 'margin note')} this week`
+  const subject = `${preview ? '[Preview] ' : ''}${circleName}: ${summary}`
   const paperUrl = (p: DigestPaper) => `${circleUrl}/p/${p.paperId}`
+  const quietNote = 'Nothing was added or discussed in the last 7 days. On quiet weeks members get no email.'
 
   const textLines = [`This week in ${circleName}`, '']
+  if (quiet) textLines.push(quietNote, '')
   if (newPapers.length) {
     textLines.push('New papers:')
     for (const p of newPapers) textLines.push(`- ${p.title}${p.tldr ? `\n  ${p.tldr}` : ''}\n  ${paperUrl(p)}`)
@@ -54,6 +62,7 @@ export function composeDigest(input: DigestInput): DigestEmail | null {
   const html = [
     `<div style="font-family:Georgia,serif;max-width:560px;color:#2b2620">`,
     `<h2 style="font-weight:normal">This week in ${escapeHtml(circleName)}</h2>`,
+    quiet ? `<p style="color:#6b6257">${quietNote}</p>` : '',
     newPapers.length
       ? `<h3>New papers</h3><ul>${newPapers
           .map((p) => li(p, p.tldr ? `<br><span style="color:#6b6257">${escapeHtml(p.tldr)}</span>` : ''))
